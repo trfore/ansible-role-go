@@ -1,2 +1,3 @@
 ---
-# defaults file for template-ansible
+go_archive: "https://go.dev/dl/{{ go_version }}.{{ __os }}-{{ __os_arch }}.{{ __file_extension }}"
+go_version: "latest"
