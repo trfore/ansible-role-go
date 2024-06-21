@@ -1,2 +1,5 @@
 ---
-# vars file for template-ansible
+__file_extension: "{{ 'tar.gz' if ansible_system in ['Linux', 'Darwin'] else 'zip' }}" # noqa: var-naming[no-role-prefix]
+__go_bin_path: /usr/local/go/bin # noqa: var-naming[no-role-prefix]
+__os: "{{ 'linux' if ansible_system == 'Linux' else 'darwin' }}" # noqa: var-naming[no-role-prefix]
+__os_arch: "{{ {'x86_64': 'amd64', 'arm64': 'arm64'}[ansible_architecture] | default('amd64') }}" # noqa: var-naming[no-role-prefix]

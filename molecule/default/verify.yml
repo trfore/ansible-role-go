@@ -1,10 +1,14 @@
 ---
-# This is an example playbook to execute Ansible tests.
-
 - name: Verify
   hosts: all
   gather_facts: false
   tasks:
-    - name: Example assertion
+    - name: Check for Go Binary
+      ansible.builtin.command: /usr/local/go/bin/go version
+      register: test_go_binary
+      changed_when: false
+
+    - name: Test
       ansible.builtin.assert:
-        that: true
+        that:
+          - test_go_binary.rc == 0

@@ -1,2 +1,62 @@
 ---
-# tasks file for template-ansible
+- name: Get Latest Release Tag
+  when: go_version == 'latest'
+  become: false
+  delegate_to: localhost
+  run_once: true
+  block:
+    - name: Get Latest Tag from Github
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/golang/go/tags?page=4
+        body_format: json
+      register: __result
+      until: __result.status == 200
+      retries: 6
+      delay: 5
+
+    - name: Set Go Version
+      ansible.builtin.set_fact:
+        go_version: '{{ __result | regex_search("go\d\d?\.\d\d?\.\d\d?") }}'
+
+- name: Check 'go_version' Variable
+  ansible.builtin.assert:
+    that: go_version | lower != 'latest'
+    fail_msg: "'go_version: {{ go_version }}', role failed to get latest semver, try setting the value."
+    success_msg: "Install Go Version: {{ go_version }}"
+
+- name: Check for Go Binary
+  ansible.builtin.command: "{{ __go_bin_path }}/go version"
+  ignore_errors: true
+  register: go_binary
+  changed_when: false
+
+- name: Remove Prior Go Install
+  ansible.builtin.file:
+    path: /usr/local/go
+    state: absent
+  when:
+    - go_binary.rc == 0
+    - go_version not in go_binary.stdout
+
+- name: Install Go
+  when: go_binary.rc != 0 or (go_version not in go_binary.stdout)
+  block:
+    - name: Download Go Archive
+      ansible.builtin.get_url:
+        url: "{{ go_archive }}"
+        dest: /tmp
+        mode: "0664"
+      register: go_archive_file
+
+    - name: Extract Go Archive
+      ansible.builtin.unarchive:
+        src: "{{ go_archive_file.dest }}"
+        dest: /usr/local
+        remote_src: true
+
+    - name: Add Go to $PATH
+      ansible.builtin.copy:
+        dest: /etc/profile.d/go-path.sh
+        content: "PATH=$PATH:{{ __go_bin_path }}"
+        mode: "0644"
+      when: ansible_env.PATH is not search(__go_bin_path)
