@@ -24,7 +24,6 @@ jobs:
     needs:
       - format
       - lint_ansible
-      - lint_python
     strategy:
       fail-fast: false
       matrix:
